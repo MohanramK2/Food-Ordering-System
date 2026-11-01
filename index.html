@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Perfect Food</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<link rel="stylesheet" href="style.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
+<script src="script.js" defer></script>
+</head>
+<body>
+<main id="auth-screen" class="auth-screen">
+  <section class="auth-card" aria-labelledby="auth-title">
+    <div class="auth-brand"><span>🍴</span><b>Perfect <em>food</em></b></div>
+    <h1 id="auth-title">Welcome</h1>
+    <p class="auth-subtitle">Sign in to continue to food ordering and delivery.</p>
+    <div class="auth-role-tabs" role="tablist" aria-label="Choose account type">
+      <button type="button" class="active" data-auth-role="user" role="tab" aria-selected="true">User</button>
+      <button type="button" data-auth-role="admin" role="tab" aria-selected="false">Admin</button>
+    </div>
+    <form id="admin-auth-form" class="auth-form" hidden>
+      <p id="admin-auth-caption" class="auth-hint"></p>
+      <label>Admin password<input id="admin-password" type="password" autocomplete="current-password" required></label>
+      <label id="admin-confirm-wrap" hidden>Confirm admin password<input id="admin-password-confirm" type="password" autocomplete="new-password"></label>
+      <button id="admin-submit" class="btn" type="submit">Sign in as Admin</button>
+    </form>
+    <form id="user-login-form" class="auth-form">
+      <label>Email<input id="login-email" type="email" autocomplete="username" required></label>
+      <label>Password<input id="login-password" type="password" autocomplete="current-password" required></label>
+      <button class="btn" type="submit">Sign in as User</button>
+      <button class="auth-link" type="button" data-auth-mode="register">New here? Create a user account</button>
+    </form>
+    <form id="user-register-form" class="auth-form" hidden>
+      <label>Full name<input id="register-name" autocomplete="name" required></label>
+      <label>Email<input id="register-email" type="email" autocomplete="email" required></label>
+      <label>Phone number<input id="register-phone" type="tel" autocomplete="tel" required></label>
+      <label>Password <small>(at least 8 characters)</small><input id="register-password" type="password" autocomplete="new-password" minlength="8" required></label>
+      <label>Confirm password<input id="register-password-confirm" type="password" autocomplete="new-password" minlength="8" required></label>
+      <button class="btn green" type="submit">Create account</button>
+      <button class="auth-link" type="button" data-auth-mode="login">Already registered? Sign in</button>
+    </form>
+    <p id="auth-status" class="auth-status" role="status" aria-live="polite"></p>
+    <p class="auth-disclaimer">Demo sign-in only: accounts and orders are stored in this browser, not on a secure server. Do not reuse a real password.</p>
+  </section>
+</main>
+<div id="app-shell" class="app" hidden>
+  <aside class="sidebar">
+    <div class="brand"><em>🍴</em><strong>Perfect <span>food</span></strong></div>
+    <div class="admin"><b id="sidebar-role">Account</b><small id="sidebar-description"></small></div>
+    <nav id="app-nav" class="nav" aria-label="Dashboard sections">
+      <button class="active" data-page="dashboard"><span class="ico">⌂</span><span>Overview</span></button>
+      <button data-page="menu"><span class="ico">🍽</span><span>Browse Food</span></button>
+      <button data-page="restaurants"><span class="ico">▣</span><span>Restaurants</span></button>
+      <button data-page="orders"><span class="ico">🛒</span><span>Orders</span></button>
+      <button data-page="delivery"><span class="ico">🛵</span><span>Live Delivery</span></button>
+      <button data-page="reports"><span class="ico">▥</span><span>Analytics</span></button>
+      <button data-page="customers"><span class="ico">♙</span><span>Customers</span></button>
+    </nav>
+    <div id="sidefoot" class="sidefoot">FoodFlow  v2.0<br>Smart Order Platform</div>
+  </aside>
+
+  <main class="main">
+    <header class="top">
+      <div class="title"><h1 id="title">Smart Food Delivery</h1><p id="subtitle">Real-time restaurant and order operations</p></div>
+      <div class="topright"><span id="session-label" class="session-label"></span><input id="search" class="search" placeholder="⌕ Search orders..." aria-label="Search orders"><button class="btn" data-action="browse-menu">Browse Food</button><button class="btn gray" data-action="logout">Sign out</button></div>
+    </header>
+
+    <section id="dashboard" class="page active" aria-label="Overview">
+      <div class="cards">
+        <div class="card metric"><div><div class="label">Total Orders</div><div class="value" id="mOrders">0</div><div class="trend">Live system</div></div><div class="icon">🛒</div></div>
+        <div class="card metric"><div><div class="label">Revenue</div><div class="value" id="mRevenue">₹0</div><div class="trend">Delivered sales</div></div><div class="icon">₹</div></div>
+        <div class="card metric"><div><div class="label">Active Deliveries</div><div class="value" id="mActive">0</div><div class="trend">Agents on route</div></div><div class="icon">🛵</div></div>
+        <div class="card metric"><div><div class="label">Restaurants</div><div class="value" id="mRest">0</div><div class="trend">Partner network</div></div><div class="icon">🍽</div></div>
+      </div>
+      <div class="grid g2">
+        <div class="panel"><div class="head"><h2>Revenue Overview</h2><span class="chip active">7 Days</span></div><div id="dashChart" class="chart"></div></div>
+        <div class="panel"><div class="head"><h2>Live Order Feed</h2><button class="btn gray mini" data-page-link="orders">View all</button></div><div id="feed"></div></div>
+      </div>
+      <div class="grid g2">
+        <div class="panel"><div class="head"><h2>Quick Actions</h2></div><div class="actions"><button class="btn" data-action="browse-menu">Create Order</button><button class="btn blue" data-page-link="delivery">Assign Delivery</button><button class="btn gray" data-page-link="restaurants">Add Restaurant</button><button class="btn green" data-page-link="reports">Analytics</button></div></div>
+        <div class="panel"><div class="head"><h2>Operations</h2></div><div class="kpis"><div class="kpi"><b id="kPending">0</b><small>Pending</small></div><div class="kpi"><b id="kPrep">0</b><small>Preparing</small></div><div class="kpi"><b id="kOut">0</b><small>Out for Delivery</small></div></div></div>
+      </div>
+    </section>
+
+    <section id="menu" class="page" aria-label="Browse food menu">
+      <section class="menu-hero">
+        <div class="menu-hero-copy">
+          <span class="menu-eyebrow">FRESH PICKS, DELIVERED</span>
+          <h2>Good food.<br><span>Good mood.</span></h2>
+          <p>Explore the menu, add your favourites, then enter delivery details at checkout.</p>
+          <div class="menu-hero-meta"><span>🍽 120 food choices</span><span>🥤 80 cool drinks</span><span>🍰 40 desserts</span></div>
+        </div>
+        <div class="menu-hero-art" aria-hidden="true"><span>🍛</span><i>✨</i><b>🥤</b><em>🍰</em></div>
+      </section>
+      <div class="menu-toolbar">
+        <div><h2>Explore the menu</h2><p id="menuCount" class="muted">120 food items</p></div>
+        <input id="menuSearch" type="search" placeholder="Search dishes, drinks, desserts..." aria-label="Search menu items">
+      </div>
+      <div id="menuCategories" class="chips menu-category-tabs" aria-label="Menu categories"></div>
+      <div id="foods" class="foodgrid storefront-grid" aria-live="polite"></div>
+      <aside id="cartBar" class="cart-bar" aria-live="polite">
+        <div class="cart-summary"><span class="cart-icon">🛒</span><div><b id="cartItemCount">Your cart is empty</b><small id="cartSubtotal">Pick something delicious to get started.</small></div></div>
+        <button id="checkoutButton" class="btn green" data-action="open-order" disabled>Continue to details <span id="cartButtonTotal">₹0</span></button>
+      </aside>
+    </section>
+
+    <section id="restaurants" class="page" aria-label="Restaurants">
+      <div class="grid g2">
+        <div class="panel"><div class="head"><h2>Register Restaurant</h2></div><div class="form">
+          <input id="rn" placeholder="Restaurant name" aria-label="Restaurant name"><input id="ro" placeholder="Owner name" aria-label="Owner name"><input id="rp" placeholder="Phone" aria-label="Phone"><input id="ra" placeholder="Address" aria-label="Address">
+          <div class="location-fields"><input id="raLat" type="number" step="any" placeholder="Latitude (optional)" aria-label="Restaurant latitude"><input id="raLng" type="number" step="any" placeholder="Longitude (optional)" aria-label="Restaurant longitude"></div>
+          <button class="btn gray" data-action="locate-restaurant">Use my current location</button><p id="restaurant-location-status" class="location-status" aria-live="polite">Add coordinates or use this device's location to pin the restaurant.</p>
+          <select id="rc" aria-label="Cuisine"><option>Indian</option><option>Chinese</option><option>Fast Food</option><option>Multi Cuisine</option></select><button class="btn" data-action="add-restaurant">Register Restaurant</button>
+        </div></div>
+        <div class="panel"><div class="head"><div><h2>Restaurant Network</h2><span id="restCount" class="chip">0 total</span></div><button class="btn blue" data-action="view-erode-restaurants">View Erode map</button></div>
+          <p class="location-status erode-map-note">15 mapped restaurant locations across Erode and nearby localities. Pins show fixed OpenStreetMap locations, not live restaurant tracking. © OpenStreetMap contributors.</p>
+          <div id="restList" class="restgrid"></div></div>
+      </div>
+    </section>
+
+    <section id="orders" class="page" aria-label="Orders">
+      <div class="panel"><div class="head"><div><h2>Order Management</h2><div class="muted">Priority queue + normal queue + status control</div></div><button class="btn" data-action="browse-menu">+ New Order</button></div>
+        <div class="chips order-filters"><button class="chip active" data-filter="All">All</button><button class="chip" data-filter="Priority">⚡ Priority</button><button class="chip" data-filter="Pending">Pending</button><button class="chip" data-filter="Out for Delivery">Delivery</button><button class="chip" data-filter="Delivered">Delivered</button></div>
+        <div id="ordersTable"></div>
+      </div>
+    </section>
+
+    <section id="my-orders" class="page" aria-label="My orders">
+      <div class="panel"><div class="head"><div><h2>My Orders</h2><div class="muted">Order status, delivery progress, and payment details</div></div><button class="btn" data-action="browse-menu">Order food</button></div>
+        <div id="myOrdersList"></div>
+      </div>
+    </section>
+
+    <section id="delivery" class="page" aria-label="Live delivery">
+      <div class="grid g2">
+        <div class="panel"><div class="head"><h2>Assign Delivery Agent</h2></div><div class="form"><select id="dOrder" aria-label="Choose order"></select><select id="dAgent" aria-label="Choose delivery agent"><option>Arun • DL001</option><option>Bala • DL002</option><option>Karthik • DL003</option><option>Vijay • DL004</option><option>Surya • DL005</option></select><button class="btn blue" data-action="assign-agent">Assign Agent</button></div><div class="kpi agent-kpi"><b>5</b><small>Delivery agents online</small></div></div>
+        <div class="panel"><div class="head"><h2>Live Route Map</h2><span class="chip active">● LIVE MAP</span></div>
+          <div class="route-search form">
+            <label>From restaurant<select id="routeRestaurant" aria-label="From restaurant"></select></label>
+            <label>From address<input id="routeFromAddress" aria-label="Restaurant starting address" readonly></label>
+            <label>To customer address<input id="routeToAddress" aria-label="Customer destination address" placeholder="Enter customer address and city"></label>
+            <div class="route-search-actions"><button class="btn gray" data-action="load-order-route">Use selected order address</button><button id="search-route-button" class="btn blue" data-action="search-map-route">Find route</button></div>
+            <p id="routeSearchStatus" class="location-status" aria-live="polite">Enter a customer address to find the restaurant-to-customer route. Address searches use OpenStreetMap.</p>
+          </div>
+          <div id="routeMap" class="map" role="region" aria-label="Restaurant, customer, and delivery agent map">Loading map…</div><p id="routeMapStatus" class="map-status">Customer GPS updates only with permission. New orders show a road route, with 30 minutes for restaurant preparation and 10 minutes for simulated courier travel.</p>
+        </div>
+      </div>
+      <div class="panel"><div class="head"><div><h2>Order Tracking</h2><div class="muted">Restaurant preparation and dispatch: up to 30 minutes · courier trip: 10 minutes · target arrival: 40 minutes, within the 45-minute promise.</div></div></div><div id="tracking"></div></div>
+    </section>
+
+    <section id="reports" class="page" aria-label="Analytics and reports">
+      <div class="cards"><div class="card"><div class="label">Gross Revenue</div><div class="value" id="gross">₹0</div></div><div class="card"><div class="label">Delivered</div><div class="value" id="del">0</div></div><div class="card"><div class="label">Cancelled</div><div class="value" id="cancelled">0</div></div><div class="card"><div class="label">Average Order</div><div class="value" id="avg">₹0</div></div></div>
+      <div class="grid g2"><div class="panel"><div class="head"><h2>Sales Analytics</h2></div><div id="repChart" class="chart"></div></div><div class="panel"><div class="head"><h2>Restaurant Sales</h2></div><div id="restSales"></div></div></div>
+    </section>
+
+    <section id="customers" class="page" aria-label="Customers">
+      <div class="panel"><div class="head"><h2>Customer Management</h2><span class="chip">From order history</span></div><div id="custTable"></div></div>
+    </section>
+  </main>
+</div>
+
+<div id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="order-modal-title" aria-hidden="true"><div class="box"><div class="modalhead"><h2 id="order-modal-title">Create New Order</h2><button class="close" data-action="close-order" aria-label="Close">✕</button></div><div class="form">
+  <p class="checkout-intro">Your food is ready in the cart. Add delivery details to place your order.</p>
+  <div id="checkout-items" class="checkout-items" aria-label="Order summary"></div><div id="checkout-charges" class="checkout-charges"></div><div class="kpi checkout-total"><small>Order Total</small><b id="total">₹0</b></div>
+  <input id="cn" placeholder="Customer name" aria-label="Customer name"><input id="cp" placeholder="Phone number" aria-label="Phone number"><textarea id="customer-address" rows="2" placeholder="Full delivery address" aria-label="Customer delivery address"></textarea>
+  <button id="customer-location-button" class="btn gray" data-action="share-customer-location">Share live location</button><p id="customer-location-status" class="location-status" aria-live="polite">Location is optional. Sharing uses this device's GPS only after permission.</p>
+  <select id="cr" aria-label="Assign restaurant"></select><select id="ct" aria-label="Order type"><option value="Normal">Normal Order</option><option value="Priority">⚡ Fast order (+₹50)</option></select>
+  <p class="promise-note">Fast orders add a ₹50 fee. Standard orders have no fast-order fee. 45-minute delivery promise from order placement — free food compensation is assigned if it is late.</p>
+  <div class="checkout-actions"><button class="btn gray" data-action="back-to-menu">← Back to menu</button><button class="btn green" data-action="place-order">Place Order</button></div>
+</div></div></div>
+<div id="payment-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="payment-modal-title" aria-hidden="true"><div class="box payment-box"><div class="modalhead"><h2 id="payment-modal-title">Demo QR Payment</h2><button class="close" data-action="close-payment" aria-label="Close payment">✕</button></div><div id="payment-details"></div><div class="qr-code"><img id="payment-qr" alt="Demo payment QR code"></div><p class="payment-warning">Demo only — this QR does not collect money or connect to a payment provider.</p><button class="btn green" data-action="simulate-payment">Simulate Payment</button></div></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
